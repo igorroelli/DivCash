@@ -21,50 +21,55 @@ export const GroupsProvider = ({ children }) => {
   const [currentUserProfile, setCurrentUserProfile] = useState(null);
 
   useEffect(() => {
+    // Estas variáveis vão guardar as funções para "desligar" os listeners
     let unsubscribeGroups = () => {};
     let unsubscribeProfile = () => {};
 
     const unsubscribeAuth = auth.onAuthStateChanged(user => {
+      // Sempre que o status de login mudar, desligamos os listeners antigos
       unsubscribeGroups();
       unsubscribeProfile();
 
       if (user) {
         setLoading(true);
 
-        // --- ESTA É A LÓGICA CORRETA ---
-        // Busca todos os grupos onde o array 'members' contém o ID do usuário atual.
+        // Listener para buscar os grupos do usuário
         const groupsQuery = query(
           collection(db, 'groups'), 
           where('members', 'array-contains', user.uid),
           orderBy('createdAt', 'desc')
         );
-
         unsubscribeGroups = onSnapshot(groupsQuery, (querySnapshot) => {
           const groupsData = [];
           querySnapshot.forEach((doc) => {
             groupsData.push({ id: doc.id, ...doc.data() });
           });
           setGroups(groupsData);
-        }, (error) => console.error("Erro no listener de grupos: ", error));
+        }, (error) => {
+          console.error("Erro no listener de grupos: ", error); // O erro que você está vendo
+        });
 
+        // Listener para buscar o perfil do usuário
         const userDocRef = doc(db, 'users', user.uid);
         unsubscribeProfile = onSnapshot(userDocRef, (doc) => {
           if (doc.exists()) {
             setCurrentUserProfile(doc.data());
           }
-          setLoading(false);
+          setLoading(false); // Consideramos carregado após buscar o perfil
         }, (error) => {
           console.error("Erro no listener de perfil: ", error);
           setLoading(false);
         });
 
       } else {
+        // Se o usuário deslogar, limpa todos os dados
         setGroups([]);
         setCurrentUserProfile(null);
         setLoading(false);
       }
     });
 
+    // Função de limpeza principal: desliga tudo quando o app é fechado
     return () => {
       unsubscribeAuth();
       unsubscribeGroups();
@@ -90,15 +95,23 @@ export const GroupsProvider = ({ children }) => {
     }
   };
 
+  // Função para excluir um grupo
   const deleteGroup = async (groupId) => {
-    try { await deleteDoc(doc(db, 'groups', groupId)); }
-    catch (error) { console.error("Erro ao excluir grupo: ", error); }
+    try {
+      await deleteDoc(doc(db, 'groups', groupId));
+    } catch (error) {
+      console.error("Erro ao excluir grupo: ", error);
+    }
   };
 
+  // Função para atualizar um grupo
   const updateGroup = async (groupId, newData) => {
     const groupDocRef = doc(db, 'groups', groupId);
-    try { await updateDoc(groupDocRef, newData); }
-    catch (error) { console.error("Erro ao atualizar grupo: ", error); }
+    try {
+      await updateDoc(groupDocRef, newData);
+    } catch (error) {
+      console.error("Erro ao atualizar grupo: ", error);
+    }
   };
 
   return (

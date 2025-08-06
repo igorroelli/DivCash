@@ -19,7 +19,6 @@ export default function AddFriendScreen() {
     setHasSearched(true);
     setSearchResults([]);
     
-    // Busca na coleção 'users' pelo campo 'nickname'
     const usersRef = collection(db, 'users');
     const q = query(usersRef, where('nickname', '==', searchNickname.trim()));
     
@@ -27,7 +26,6 @@ export default function AddFriendScreen() {
       const querySnapshot = await getDocs(q);
       const results = [];
       querySnapshot.forEach(doc => {
-        // Garante que o usuário não possa adicionar a si mesmo
         if (doc.id !== currentUser.uid) {
           results.push(doc.data());
         }
@@ -42,12 +40,11 @@ export default function AddFriendScreen() {
   };
 
   const sendFriendRequest = async (recipient) => {
-    // Busca o perfil do usuário atual para obter seu apelido
     const senderDoc = await getDoc(doc(db, 'users', currentUser.uid));
     const senderNickname = senderDoc.data().nickname;
 
     try {
-      // Cria o documento de convite com todos os dados necessários
+      // CORREÇÃO PRINCIPAL: Garante que todos os campos, incluindo e-mails, sejam salvos
       await addDoc(collection(db, 'friendRequests'), {
         from: currentUser.uid,
         fromEmail: currentUser.email,
@@ -85,7 +82,7 @@ export default function AddFriendScreen() {
       ) : (
         <FlatList
           data={searchResults}
-          keyExtractor={(item) => item.uid} // Chave única para resolver o erro
+          keyExtractor={(item) => item.uid}
           renderItem={({ item }) => (
             <View style={styles.resultItem}>
               <View>

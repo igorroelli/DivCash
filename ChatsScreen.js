@@ -4,13 +4,21 @@ import { useGroups } from './GroupsContext';
 import { MaterialIcons } from '@expo/vector-icons';
 import { signOut } from 'firebase/auth';
 import { auth } from './firebaseConfig';
+import {
+  Menu,
+  MenuOptions,
+  MenuOption,
+  MenuTrigger,
+} from 'react-native-popup-menu';
 
 const GroupItem = ({ item, navigation, onDelete }) => (
   <TouchableOpacity 
     style={styles.groupItemContainer} 
     onPress={() => navigation.navigate('Chat', { groupId: item.id, groupName: item.name })}
     onLongPress={() => {
-      Alert.alert('Excluir Grupo', `Você tem certeza que deseja excluir o grupo "${item.name}"?`, [{ text: 'Cancelar', style: 'cancel' }, { text: 'Excluir', style: 'destructive', onPress: () => onDelete(item.id) }])
+      Alert.alert( 'Excluir Grupo', `Você tem certeza que deseja excluir o grupo "${item.name}"?`,
+        [ { text: 'Cancelar', style: 'cancel' }, { text: 'Excluir', style: 'destructive', onPress: () => onDelete(item.id) } ]
+      );
     }}
   >
     <Image source={{ uri: item.avatar }} style={styles.avatar} />
@@ -24,13 +32,46 @@ const GroupItem = ({ item, navigation, onDelete }) => (
 export default function ChatsScreen({ navigation }) {
   const { groups, deleteGroup, loading, currentUserProfile } = useGroups();
 
+  const handleLogout = () => {
+    signOut(auth).then(() => {
+      navigation.replace('Login');
+    }).catch(error => {
+      console.error("Erro ao sair:", error);
+      Alert.alert("Erro", "Não foi possível sair da conta.");
+    });
+  };
+
   useLayoutEffect(() => {
     navigation.setOptions({
       title: currentUserProfile?.nickname || 'DivCash',
       headerRight: () => (
-        <TouchableOpacity onPress={() => navigation.navigate('Settings')} style={{ marginRight: 15, padding: 5 }}>
-          <MaterialIcons name="settings" size={24} color="white" />
-        </TouchableOpacity>
+        <Menu>
+          <MenuTrigger style={{ padding: 10 }}>
+            <MaterialIcons name="more-vert" size={28} color="white" />
+          </MenuTrigger>
+          <MenuOptions customStyles={menuOptionsStyles}>
+            <MenuOption onSelect={() => navigation.navigate('AddFriend')}>
+              <View style={styles.menuItem}>
+                <MaterialIcons name="person-add" size={24} color="#333" />
+                <Text style={styles.menuItemText}>Adicionar Amigo</Text>
+              </View>
+            </MenuOption>
+            <View style={styles.divider} />
+            <MenuOption onSelect={() => navigation.navigate('FriendRequests')}>
+              <View style={styles.menuItem}>
+                <MaterialIcons name="notifications" size={24} color="#333" />
+                <Text style={styles.menuItemText}>Convites</Text>
+              </View>
+            </MenuOption>
+            <View style={styles.divider} />
+            <MenuOption onSelect={handleLogout}>
+              <View style={styles.menuItem}>
+                <MaterialIcons name="logout" size={24} color="#f44336" />
+                <Text style={[styles.menuItemText, { color: '#f44336' }]}>Sair</Text>
+              </View>
+            </MenuOption>
+          </MenuOptions>
+        </Menu>
       ),
       headerLeft: null,
       gestureEnabled: false,
@@ -59,6 +100,14 @@ export default function ChatsScreen({ navigation }) {
   );
 }
 
+const menuOptionsStyles = {
+  optionsContainer: {
+    borderRadius: 8,
+    padding: 5,
+    marginTop: 40,
+  },
+};
+
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#fff' },
     centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
@@ -70,4 +119,8 @@ const styles = StyleSheet.create({
     separator: { height: 1, backgroundColor: '#f0f0f0', marginLeft: 82 },
     emptyText: { textAlign: 'center', marginTop: 50, fontSize: 16, color: 'gray' },
     fab: { position: 'absolute', width: 56, height: 56, alignItems: 'center', justifyContent: 'center', right: 20, bottom: 20, backgroundColor: '#4CAF50', borderRadius: 28, elevation: 8 },
+    // Estilos para o menu
+    menuItem: { flexDirection: 'row', alignItems: 'center', padding: 10 },
+    menuItemText: { marginLeft: 15, fontSize: 16, color: '#333' },
+    divider: { height: 1, backgroundColor: '#f0f0f0' },
 });

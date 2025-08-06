@@ -9,19 +9,14 @@ export default function FriendRequestsScreen() {
   const currentUser = auth.currentUser;
 
   useEffect(() => {
-    if (!currentUser) {
-      setLoading(false);
-      return;
-    }
+    if (!currentUser) { setLoading(false); return; }
     const requestsRef = collection(db, 'friendRequests');
     const q = query(requestsRef, where('to', '==', currentUser.uid), where('status', '==', 'pending'));
-
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const reqs = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
       setRequests(reqs);
       setLoading(false);
     });
-
     return () => unsubscribe();
   }, [currentUser]);
 
@@ -32,15 +27,15 @@ export default function FriendRequestsScreen() {
     if (newStatus === 'accepted') {
       const myNickname = auth.currentUser.displayName;
 
-      // Adiciona o remetente à lista de amigos do usuário atual
+      // Adiciona o amigo na sua lista de amigos
       const myFriendsRef = doc(db, 'users', currentUser.uid, 'friends', request.from);
       await setDoc(myFriendsRef, { 
         uid: request.from, 
-        email: request.fromEmail, 
+        email: request.fromEmail, // Usa o e-mail do convite
         nickname: request.fromNickname 
       });
 
-      // Adiciona o usuário atual à lista de amigos do remetente
+      // Adiciona você na lista de amigos dele
       const theirFriendsRef = doc(db, 'users', request.from, 'friends', currentUser.uid);
       await setDoc(theirFriendsRef, { 
         uid: currentUser.uid, 

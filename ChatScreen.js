@@ -20,31 +20,32 @@ export default function ChatScreen({ route, navigation }) {
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
   const user = auth.currentUser;
+
   const currentGroup = groups.find(g => g.id === groupId);
 
   useLayoutEffect(() => {
     navigation.setOptions({
       title: currentGroup ? currentGroup.name : groupName,
       headerRight: () => (
-        <View style={{ flexDirection: 'row' }}>
-          {/* BOTÃO PARA A TELA DE DÍVIDAS DO GRUPO */}
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          {/* BOTÃO PARA VER O BALANÇO/DÍVIDAS */}
           <TouchableOpacity 
-            style={{ padding: 5, marginRight: 10 }}
+            style={{ marginRight: 15 }}
             onPress={() => {
               if (currentGroup) {
-                navigation.navigate('GroupDebts', { group: currentGroup });
+                navigation.navigate('GroupBalance', { groupId: currentGroup.id });
               }
             }}
           >
-            <MaterialIcons name="receipt-long" size={24} color="white" />
+            <MaterialIcons name="assessment" size={24} color="white" />
           </TouchableOpacity>
-          {/* BOTÃO PARA A TELA DE EDIÇÃO DO GRUPO */}
+          {/* BOTÃO DE CONFIGURAÇÕES DO GRUPO */}
           <TouchableOpacity 
-            style={{ padding: 5, marginRight: 10 }} 
-            onPress={() => { 
-              if (currentGroup) { 
-                navigation.navigate('EditGroup', { group: currentGroup }); 
-              } 
+            style={{ marginRight: 15 }}
+            onPress={() => {
+              if (currentGroup) {
+                navigation.navigate('EditGroup', { group: currentGroup });
+              }
             }}
           >
             <MaterialIcons name="settings" size={24} color="white" />
@@ -91,22 +92,23 @@ export default function ChatScreen({ route, navigation }) {
         contentContainerStyle={styles.messagesContainer}
       />
       <View style={styles.inputContainer}>
+        {/* BOTÃO PARA ADICIONAR DESPESA */}
         <TouchableOpacity 
-          style={styles.actionButton}
+          style={styles.actionButton} 
           onPress={() => {
             if (currentGroup) {
-              navigation.navigate('AddDebt', { group: currentGroup });
+              navigation.navigate('AddExpense', { group: currentGroup })
             }
           }}
         >
-          <MaterialIcons name="request-quote" size={24} color="#555" />
+          <MaterialIcons name="add-circle-outline" size={28} color="#555" />
         </TouchableOpacity>
 
-        <TextInput
-          style={styles.input}
-          value={inputText}
-          onChangeText={setInputText}
-          placeholder="Digite uma mensagem..."
+        <TextInput 
+          style={styles.input} 
+          value={inputText} 
+          onChangeText={setInputText} 
+          placeholder="Digite uma mensagem..." 
         />
         <TouchableOpacity style={styles.sendButton} onPress={handleSend}>
           <MaterialIcons name="send" size={24} color="white" />
@@ -123,8 +125,8 @@ const styles = StyleSheet.create({
     myMessage: { backgroundColor: '#dcf8c6', alignSelf: 'flex-end' },
     otherMessage: { backgroundColor: '#fff', alignSelf: 'flex-start' },
     messageText: { fontSize: 16 },
-    inputContainer: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 8, backgroundColor: '#f0f0f0', borderTopWidth: 1, borderColor: '#ddd' },
-    actionButton: { padding: 8 },
-    input: { flex: 1, height: 40, backgroundColor: '#fff', borderRadius: 20, paddingHorizontal: 15, marginRight: 10 },
-    sendButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#4CAF50', alignItems: 'center', justifyContent: 'center' },
+    inputContainer: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 5, backgroundColor: '#f0f0f0', borderTopWidth: 1, borderColor: '#ddd' },
+    actionButton: { padding: 5, marginRight: 5 },
+    input: { flex: 1, height: 40, backgroundColor: '#fff', borderRadius: 20, paddingHorizontal: 15 },
+    sendButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#4CAF50', alignItems: 'center', justifyContent: 'center', marginLeft: 10 },
 });
