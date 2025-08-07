@@ -24,5 +24,5 @@ const auth = initializeAuth(app, {
 // Inicializa o serviço do Firestore
 const db = getFirestore(app);
 
-// Exporta as instâncias para serem usadas no aplicativo
+// Exporta as instâncias para serem usadas no aplicativ
 export { auth, db };
