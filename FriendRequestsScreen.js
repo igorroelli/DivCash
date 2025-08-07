@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { db, auth } from './firebaseConfig';
-import { collection, query, where, onSnapshot, doc, updateDoc, setDoc } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, doc, updateDoc, setDoc, getDoc } from 'firebase/firestore';
 
 export default function FriendRequestsScreen() {
   const [requests, setRequests] = useState([]);
@@ -25,23 +25,52 @@ export default function FriendRequestsScreen() {
     await updateDoc(requestRef, { status: newStatus });
 
     if (newStatus === 'accepted') {
-      const myNickname = auth.currentUser.displayName;
+      try {
+        console.log("--- Iniciando processo de amizade mútua ---");
+        
+        // 1. Busca os dados do perfil do usuário atual (quem está aceitando)
+        const currentUserDocRef = doc(db, 'users', currentUser.uid);
+        const currentUserDoc = await getDoc(currentUserDocRef);
+        if (!currentUserDoc.exists()) {
+          throw new Error("Não foi possível encontrar o perfil do usuário atual.");
+        }
+        const myProfile = currentUserDoc.data();
+        console.log("Perfil de quem aceitou:", myProfile);
 
-      // Adiciona o amigo na sua lista de amigos
-      const myFriendsRef = doc(db, 'users', currentUser.uid, 'friends', request.from);
-      await setDoc(myFriendsRef, { 
-        uid: request.from, 
-        email: request.fromEmail, // Usa o e-mail do convite
-        nickname: request.fromNickname 
-      });
+        // 2. Busca os dados do perfil de quem enviou o convite
+        const senderUserDocRef = doc(db, 'users', request.from);
+        const senderUserDoc = await getDoc(senderUserDocRef);
+        if (!senderUserDoc.exists()) {
+          throw new Error("Não foi possível encontrar o perfil de quem enviou o convite.");
+        }
+        const senderProfile = senderUserDoc.data();
+        console.log("Perfil de quem enviou:", senderProfile);
 
-      // Adiciona você na lista de amigos dele
-      const theirFriendsRef = doc(db, 'users', request.from, 'friends', currentUser.uid);
-      await setDoc(theirFriendsRef, { 
-        uid: currentUser.uid, 
-        email: currentUser.email, 
-        nickname: myNickname
-      });
+        // 3. Adiciona o remetente à lista de amigos do usuário atual
+        console.log(`Adicionando ${senderProfile.nickname} à lista de amigos de ${myProfile.nickname}...`);
+        const myFriendsRef = doc(db, 'users', currentUser.uid, 'friends', request.from);
+        await setDoc(myFriendsRef, { 
+          uid: senderProfile.uid, 
+          email: senderProfile.email, 
+          nickname: senderProfile.nickname 
+        });
+        console.log("-> Sucesso!");
+
+        // 4. Adiciona o usuário atual à lista de amigos do remetente
+        console.log(`Adicionando ${myProfile.nickname} à lista de amigos de ${senderProfile.nickname}...`);
+        const theirFriendsRef = doc(db, 'users', request.from, 'friends', currentUser.uid);
+        await setDoc(theirFriendsRef, { 
+          uid: myProfile.uid, 
+          email: myProfile.email, 
+          nickname: myProfile.nickname
+        });
+        console.log("-> Sucesso!");
+        console.log("--- Processo de amizade mútua concluído ---");
+
+      } catch (error) {
+        console.error("Erro detalhado ao criar amizade mútua:", error);
+        Alert.alert("Erro", "Ocorreu um problema ao adicionar o amigo. Verifique o console para mais detalhes.");
+      }
     }
   };
 

@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, FlatList, ActivityIndicator } from 'react-nativ
 import { db, auth } from './firebaseConfig';
 import { collection, onSnapshot } from 'firebase/firestore';
 
+// Componente para renderizar cada amigo na lista
 const FriendItem = ({ item }) => (
   <View style={styles.friendItem}>
     <Text style={styles.nicknameText}>{item.nickname}</Text>
@@ -15,8 +16,11 @@ export default function FriendsListScreen() {
   const [loading, setLoading] = useState(true);
   const currentUser = auth.currentUser;
 
+  // Busca a lista de amigos do usuário no Firestore em tempo real
   useEffect(() => {
     if (!currentUser) return;
+
+    // Acessa a sub-coleção 'friends' do usuário logado
     const friendsRef = collection(db, 'users', currentUser.uid, 'friends');
     const unsubscribe = onSnapshot(friendsRef, (snapshot) => {
       const friendsList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -36,6 +40,7 @@ export default function FriendsListScreen() {
         data={friends}
         keyExtractor={item => item.id}
         renderItem={({ item }) => <FriendItem item={item} />}
+        ItemSeparatorComponent={() => <View style={styles.separator} />}
         ListEmptyComponent={<Text style={styles.emptyText}>Você ainda não adicionou nenhum amigo.</Text>}
       />
     </View>
@@ -45,8 +50,27 @@ export default function FriendsListScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f5f7fa' },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  friendItem: { backgroundColor: '#fff', padding: 20, borderBottomWidth: 1, borderBottomColor: '#eee' },
-  nicknameText: { fontSize: 18, fontWeight: 'bold' },
-  emailText: { fontSize: 14, color: 'gray' },
-  emptyText: { textAlign: 'center', color: 'gray', marginTop: 50, fontSize: 16 },
+  friendItem: {
+    backgroundColor: '#fff',
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+  },
+  separator: {
+    height: 1,
+    backgroundColor: '#f0f0f0',
+  },
+  nicknameText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  emailText: {
+    fontSize: 14,
+    color: 'gray',
+  },
+  emptyText: {
+    textAlign: 'center',
+    color: 'gray',
+    marginTop: 50,
+    fontSize: 16,
+  },
 });
