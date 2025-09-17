@@ -1,0 +1,50 @@
+{
+  "expo": {
+    "name": "Divcash",
+    "slug": "Divcash",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.anonymous.Divcash",
+      "config": {
+        "googleMaps": {
+          "apiKey": "SUA_CHAVE_DE_API_DO_GOOGLE_AQUI"
+        }
+      }
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "O aplicativo precisa de acesso às suas fotos para que você possa adicioná-las como fotos de perfil, de grupo ou de recibo.",
+          "cameraPermission": "O aplicativo precisa de acesso à sua câmera para que você possa tirar fotos para os recibos."
+        }
+      ]
+    ]
+  }
+}
