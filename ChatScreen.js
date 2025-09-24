@@ -2,20 +2,66 @@ import React, { useState, useLayoutEffect, useEffect } from 'react';
 import { View, Text, TextInput, StyleSheet, FlatList, TouchableOpacity, KeyboardAvoidingView, Platform, Image, Alert, Modal } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { db, auth } from './firebaseConfig';
-import { collection, addDoc, onSnapshot, query, orderBy, serverTimestamp, doc, updateDoc } from 'firebase/firestore';
+import { collection, addDoc, onSnapshot, query, orderBy, serverTimestamp, doc, updateDoc, getDoc } from 'firebase/firestore';
 import { useGroups } from './GroupsContext';
 import { uploadImageToCloudinary } from './utils/cloudinaryUploader';
 import { pickImageFromLibrary } from './utils/imagePickerHelper';
 
+// Componente para renderizar cada balão de mensagem
+const MessageItem = ({ item, currentUserId, members }) => {
+  const formatTime = (timestamp) => {
+    if (!timestamp) return '';
+    const date = timestamp.toDate();
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    return `${hours}:${minutes}`;
+  };
+
+  const isMyMessage = item.senderId === currentUserId;
+
+  // Procura o perfil do remetente na lista de membros
+  const senderProfile = members.find(member => member.uid === item.senderId);
+  const senderNickname = senderProfile ? senderProfile.nickname : 'Usuário';
+
+  return (
+    <View style={[
+      styles.messageBubble,
+      isMyMessage ? styles.myMessage : styles.otherMessage
+    ]}>
+      {!isMyMessage && (
+        <Text style={styles.senderNickname}>{senderNickname}</Text>
+      )}
+      <Text style={styles.messageText}>{item.text}</Text>
+      <Text style={styles.messageTime}>{formatTime(item.createdAt)}</Text>
+    </View>
+  );
+};
+
 export default function ChatScreen({ route, navigation }) {
   const { groupId, groupName } = route.params; 
-  const { groups, updateGroup } = useGroups();
+  const { groups, updateGroup, currentUserProfile } = useGroups();
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [groupMembers, setGroupMembers] = useState([]);
   const user = auth.currentUser;
 
   const currentGroup = groups.find(g => g.id === groupId);
+
+  // Busca os perfis dos membros do grupo uma vez quando a tela carrega ou o grupo muda
+  useEffect(() => {
+    const fetchMemberProfiles = async () => {
+      if (currentGroup?.members) {
+        const profilePromises = currentGroup.members.map(id => getDoc(doc(db, 'users', id)));
+        const profileDocs = await Promise.all(profilePromises);
+        const profiles = profileDocs
+          .filter(doc => doc.exists())
+          .map(doc => ({ uid: doc.id, ...doc.data() }));
+        setGroupMembers(profiles);
+      }
+    };
+    fetchMemberProfiles();
+  }, [currentGroup]);
 
   const handleUpdateGroupImage = () => {
     setIsModalVisible(false);
@@ -52,10 +98,16 @@ export default function ChatScreen({ route, navigation }) {
       },
       headerRight: () => (
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <TouchableOpacity style={{ marginRight: 15 }} onPress={() => { if (currentGroup) { navigation.navigate('GroupBalance', { groupId: currentGroup.id }); } }}>
+          <TouchableOpacity 
+            style={{ marginRight: 15 }}
+            onPress={() => { if (currentGroup) { navigation.navigate('GroupBalance', { groupId: currentGroup.id }); } }}
+          >
             <MaterialIcons name="assessment" size={24} color="white" />
           </TouchableOpacity>
-          <TouchableOpacity style={{ marginRight: 15 }} onPress={() => { if (currentGroup) { navigation.navigate('EditGroup', { group: currentGroup }); } }}>
+          <TouchableOpacity 
+            style={{ marginRight: 15 }}
+            onPress={() => { if (currentGroup) { navigation.navigate('EditGroup', { group: currentGroup }); } }}
+          >
             <MaterialIcons name="settings" size={24} color="white" />
           </TouchableOpacity>
         </View>
@@ -75,31 +127,38 @@ export default function ChatScreen({ route, navigation }) {
   }, [groupId]);
 
   const handleSend = async () => {
-    if (inputText.trim().length === 0 || !user) return;
+    if (inputText.trim().length === 0 || !user || !currentUserProfile) return;
     const messagesCollectionRef = collection(db, 'groups', groupId, 'messages');
     try {
-      await addDoc(messagesCollectionRef, { text: inputText, createdAt: serverTimestamp(), senderId: user.uid, senderEmail: user.email });
+      await addDoc(messagesCollectionRef, {
+        text: inputText.trim(),
+        createdAt: serverTimestamp(),
+        senderId: user.uid,
+        senderNickname: currentUserProfile.nickname,
+      });
       const groupDocRef = doc(db, 'groups', groupId);
-      await updateDoc(groupDocRef, { lastMessage: inputText });
+      await updateDoc(groupDocRef, { lastMessage: inputText.trim() });
       setInputText('');
     } catch (error) { console.error("Erro ao enviar mensagem: ", error); }
   };
 
-  const renderMessage = ({ item }) => (
-    <View style={[ styles.messageBubble, item.senderId === user.uid ? styles.myMessage : styles.otherMessage ]}>
-      <Text style={styles.messageText}>{item.text}</Text>
-    </View>
-  );
-
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : "height"} keyboardVerticalOffset={90}>
+    <KeyboardAvoidingView 
+      style={styles.container} 
+      behavior={Platform.OS === "ios" ? "padding" : "height"} 
+      keyboardVerticalOffset={90}
+    >
       <Modal
         animationType="fade"
         transparent={true}
         visible={isModalVisible}
         onRequestClose={() => setIsModalVisible(false)}
       >
-        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPressOut={() => setIsModalVisible(false)}>
+        <TouchableOpacity 
+          style={styles.modalOverlay} 
+          activeOpacity={1} 
+          onPressOut={() => setIsModalVisible(false)}
+        >
           <TouchableOpacity activeOpacity={1} style={styles.modalContent}>
             {currentGroup?.avatar && currentGroup.avatar.includes('cloudinary') ? (
               <Image source={{ uri: currentGroup.avatar }} style={styles.modalImage} />
@@ -108,19 +167,37 @@ export default function ChatScreen({ route, navigation }) {
                 <MaterialIcons name="group" size={100} color="#a5d6a7" />
               </View>
             )}
-            <TouchableOpacity style={styles.modalButton} onPress={handleUpdateGroupImage}>
+            <TouchableOpacity 
+              style={styles.modalButton} 
+              onPress={handleUpdateGroupImage}
+            >
               <MaterialIcons name="photo-camera" size={20} color="#fff" />
               <Text style={styles.modalButtonText}>Trocar de Imagem</Text>
             </TouchableOpacity>
           </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
-      <FlatList data={messages} renderItem={renderMessage} keyExtractor={item => item.id} contentContainerStyle={styles.messagesContainer} />
+
+      <FlatList
+        data={messages}
+        renderItem={({ item }) => <MessageItem item={item} currentUserId={user.uid} members={groupMembers} />}
+        keyExtractor={item => item.id}
+        extraData={groupMembers}
+        contentContainerStyle={styles.messagesContainer}
+      />
       <View style={styles.inputContainer}>
-        <TouchableOpacity style={styles.actionButton} onPress={() => { if (currentGroup) { navigation.navigate('AddExpense', { group: currentGroup }) } }}>
+        <TouchableOpacity 
+          style={styles.actionButton} 
+          onPress={() => { if (currentGroup) { navigation.navigate('AddExpense', { group: currentGroup }) } }}
+        >
           <MaterialIcons name="add-circle-outline" size={28} color="#555" />
         </TouchableOpacity>
-        <TextInput style={styles.input} value={inputText} onChangeText={setInputText} placeholder="Digite uma mensagem..." />
+        <TextInput 
+          style={styles.input} 
+          value={inputText} 
+          onChangeText={setInputText} 
+          placeholder="Digite uma mensagem..." 
+        />
         <TouchableOpacity style={styles.sendButton} onPress={handleSend}>
           <MaterialIcons name="send" size={24} color="white" />
         </TouchableOpacity>
@@ -132,10 +209,12 @@ export default function ChatScreen({ route, navigation }) {
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#ece5dd' },
     messagesContainer: { paddingVertical: 10, paddingHorizontal: 10 },
-    messageBubble: { padding: 12, borderRadius: 20, maxWidth: '80%', marginBottom: 10, elevation: 1 },
+    messageBubble: { paddingVertical: 8, paddingHorizontal: 12, borderRadius: 20, maxWidth: '80%', marginBottom: 10, elevation: 1, },
     myMessage: { backgroundColor: '#dcf8c6', alignSelf: 'flex-end' },
     otherMessage: { backgroundColor: '#fff', alignSelf: 'flex-start' },
+    senderNickname: { fontSize: 13, fontWeight: 'bold', color: '#4CAF50', marginBottom: 4, },
     messageText: { fontSize: 16 },
+    messageTime: { fontSize: 11, color: '#aaa', alignSelf: 'flex-end', marginTop: 5, },
     inputContainer: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 5, backgroundColor: '#f0f0f0', borderTopWidth: 1, borderColor: '#ddd' },
     actionButton: { padding: 5, marginRight: 5 },
     input: { flex: 1, height: 40, backgroundColor: '#fff', borderRadius: 20, paddingHorizontal: 15 },
