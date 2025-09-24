@@ -6,6 +6,7 @@ import { db, auth } from './firebaseConfig';
 import * as ImagePicker from 'expo-image-picker';
 import { uploadImageToCloudinary } from './utils/cloudinaryUploader';
 import 'react-native-get-random-values';
+import { MaterialIcons } from '@expo/vector-icons'; // <-- ADICIONE ESTA LINHA
 
 export default function ChooseNicknameScreen({ navigation }) {
   const [nickname, setNickname] = useState('');

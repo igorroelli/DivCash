@@ -1,7 +1,8 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, Image } from "react-native";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "./firebaseConfig";
+import { LinearGradient } from 'expo-linear-gradient';
 
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState("");
@@ -31,29 +32,96 @@ export default function LoginScreen({ navigation }) {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>DivCa$h</Text>
-      <TextInput style={styles.input} placeholder="Email" onChangeText={setEmail} value={email} keyboardType="email-address" autoCapitalize="none" />
-      <TextInput style={styles.input} placeholder="Senha" onChangeText={setSenha} value={senha} secureTextEntry />
+    <LinearGradient
+      colors={['#00C9FF', '#92FE9D']}
+      style={styles.container}
+    >
+      <Image
+        source={require('./assets/logo.png')}
+        style={styles.logo}
+        resizeMode="contain"
+      />
+      
+      {/* Removemos o 'formContainer' e colocamos os inputs diretamente aqui */}
+      <TextInput
+        style={styles.input}
+        placeholder="Email"
+        placeholderTextColor="#555" // Cor do placeholder um pouco mais escura
+        onChangeText={setEmail}
+        value={email}
+        keyboardType="email-address"
+        autoCapitalize="none"
+      />
+      
+      <TextInput
+        style={styles.input}
+        placeholder="Senha"
+        placeholderTextColor="#555"
+        onChangeText={setSenha}
+        value={senha}
+        secureTextEntry
+      />
+      
       {loading ? (
-        <ActivityIndicator size="large" color="#4CAF50" style={{ marginVertical: 10 }} />
+        <ActivityIndicator size="large" color="#fff" style={{ height: 50, marginBottom: 12 }} />
       ) : (
         <TouchableOpacity style={styles.button} onPress={handleLogin}>
           <Text style={styles.buttonText}>Entrar</Text>
         </TouchableOpacity>
       )}
+      
       <TouchableOpacity onPress={() => navigation.navigate('SignUp')}>
         <Text style={styles.linkText}>Criar conta</Text>
       </TouchableOpacity>
-    </View>
+    </LinearGradient>
   );
 }
 
+// --- ESTILOS ATUALIZADOS ---
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: "#f5f7fa", alignItems: "center", justifyContent: "center", padding: 20 },
-    title: { fontSize: 36, fontWeight: "bold", marginBottom: 40, color: "#1e1e1e" },
-    input: { width: "100%", height: 50, backgroundColor: "#fff", borderRadius: 12, paddingHorizontal: 16, marginBottom: 16, fontSize: 16, elevation: 3 },
-    button: { width: "100%", height: 50, backgroundColor: "#4CAF50", borderRadius: 12, alignItems: "center", justifyContent: "center", marginBottom: 12 },
-    buttonText: { color: "#fff", fontSize: 18, fontWeight: "bold" },
-    linkText: { color: "#4CAF50", fontSize: 16, marginTop: 8 },
+    container: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center", // Voltamos para 'center' para um layout mais simples
+      padding: 30, // Aumenta o padding lateral
+    },
+    logo: {
+      width: '90%',
+      height: 250, // <-- LOGO GRANDE
+      marginBottom: 50, // Espaço entre o logo e os inputs
+    },
+    input: {
+      width: "100%",
+      height: 55,
+      backgroundColor: "rgba(255, 255, 255, 0.9)", // Fundo branco sólido para os inputs
+      borderRadius: 12,
+      paddingHorizontal: 20,
+      marginBottom: 16,
+      fontSize: 16,
+      color: '#333',
+    },
+    button: {
+      width: "100%",
+      height: 50,
+      backgroundColor: "#4CAF50",
+      borderRadius: 12,
+      alignItems: "center",
+      justifyContent: "center",
+      marginBottom: 12,
+      elevation: 3,
+    },
+    buttonText: {
+      color: "#fff",
+      fontSize: 18,
+      fontWeight: "bold",
+    },
+    linkText: {
+      color: "#fff",
+      fontSize: 16,
+      marginTop: 15,
+      fontWeight: 'bold',
+      textShadowColor: 'rgba(0, 0, 0, 0.25)',
+      textShadowOffset: { width: 0, height: 1 },
+      textShadowRadius: 2,
+    },
 });
